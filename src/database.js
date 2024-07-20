@@ -60,7 +60,8 @@ export class Database {
         const rowIndex = this.#database[table].findIndex((row) => row.id === id)
 
         if (rowIndex >= 0) {
-            this.#database[table][rowIndex] = { id, updatedAt: new Date(), ...data }
+            const task = this.#database[table][rowIndex]
+            this.#database[table][rowIndex] = data ? { ...task, updatedAt: new Date(), ...data } : { ...task, updatedAt: new Date(), completedAt: new Date(), }
             this.#persist()
         }
 
