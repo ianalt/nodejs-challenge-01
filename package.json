@@ -1,0 +1,16 @@
+{
+  "name": "nodejs-challenge-01",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "CRUD API to manage tasks, capable of reading CSV files",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch ./src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parse": "^5.5.6"
+  }
+}
