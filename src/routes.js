@@ -2,6 +2,9 @@ import { Database } from './database.js'
 import { randomUUID } from 'node:crypto'
 import { buildRoutePath } from './utils/build-route-path.js'
 import { buildBufferChunk } from './utils/build-buffer-chunk.js'
+import { readCsvFile } from './utils/read-csv-file.js'
+import { parse } from 'csv-parse'
+import fs from 'node:fs'
 
 const database = new Database()
 
@@ -16,32 +19,52 @@ export const routes = [
     {
         method: 'POST',
         path: buildRoutePath('/tasks'),
-        handler: (req, res) => {
-            const { title, description } = req.body
+        handler: async (req, res) => {
+            const filePath = './csv/tasks.csv'
+            const dataSet = await readCsvFile(filePath)
 
-            if (!req.body || !title || !description) {
+            try {
+                for (const data of dataSet) {
+                    const { title, description } = data
+
+                    if (!title || !description) {
+                        throw new Error('Title and/or description not provided')
+                    }
+
+                    const task = {
+                        id: randomUUID(),
+                        createdAt: new Date(),
+                        updatedAt: null,
+                        title,
+                        description,
+                        completedAt: null,
+                    }
+
+                    database.insert('tasks', task)
+                }
+
                 return res
-                    .writeHead(UNPROCESSABLE_ENTITY_HTTP)
+                    .writeHead(CREATED_HTTP)
+                    .end()
+            } catch (e) {
+
+                if (e instanceof Error) {
+                    return res
+                        .writeHead(UNPROCESSABLE_ENTITY_HTTP)
+                        .end(buildBufferChunk({
+                            status: UNPROCESSABLE_ENTITY_HTTP,
+                            message: e.message
+                        }))
+                }
+
+                return res
+                    .writeHead(INTERNAL_SERVER_ERROR_HTTP)
                     .end(buildBufferChunk({
-                        status: UNPROCESSABLE_ENTITY_HTTP,
-                        message: 'Title and/or description not provided'
+                        status: INTERNAL_SERVER_ERROR_HTTP,
+                        message: 'An unknown error has happened'
                     }))
             }
 
-            const task = {
-                id: randomUUID(),
-                createdAt: new Date(),
-                updatedAt: null,
-                title,
-                description,
-                completedAt: null,
-            }
-
-            database.insert('tasks', task)
-
-            return res
-                .writeHead(CREATED_HTTP)
-                .end()
         }
     },
     {

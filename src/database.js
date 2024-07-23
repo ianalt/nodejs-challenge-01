@@ -71,5 +71,3 @@ export class Database {
 
     }
 }
-
-//TODO Nas rotas que recebem o `/:id`, além de validar se o `id` existe no banco de dados, retornar a requisição com uma mensagem informando que o registro não existe.
