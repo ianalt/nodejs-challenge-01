@@ -52,6 +52,8 @@ export class Database {
         if (rowIndex >= 0) {
             this.#database[table].splice(rowIndex, 1)
             this.#persist()
+        } else {
+            throw new Error('Could not find task with provided ID')
         }
 
     }
@@ -63,7 +65,11 @@ export class Database {
             const task = this.#database[table][rowIndex]
             this.#database[table][rowIndex] = data ? { ...task, updatedAt: new Date(), ...data } : { ...task, updatedAt: new Date(), completedAt: new Date(), }
             this.#persist()
+        } else {
+            throw new Error('Could not find task with provided ID')
         }
 
     }
 }
+
+//TODO Nas rotas que recebem o `/:id`, além de validar se o `id` existe no banco de dados, retornar a requisição com uma mensagem informando que o registro não existe.

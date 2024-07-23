@@ -1,8 +1,16 @@
 import { Database } from './database.js'
 import { randomUUID } from 'node:crypto'
 import { buildRoutePath } from './utils/build-route-path.js'
+import { buildBufferChunk } from './utils/build-buffer-chunk.js'
 
 const database = new Database()
+
+const UNPROCESSABLE_ENTITY_HTTP = 422
+const CREATED_HTTP = 201
+const NO_CONTENT_HTTP = 204
+const NOT_FOUND_HTTP = 404
+const INTERNAL_SERVER_ERROR_HTTP = 500
+
 
 export const routes = [
     {
@@ -10,6 +18,15 @@ export const routes = [
         path: buildRoutePath('/tasks'),
         handler: (req, res) => {
             const { title, description } = req.body
+
+            if (!req.body || !title || !description) {
+                return res
+                    .writeHead(UNPROCESSABLE_ENTITY_HTTP)
+                    .end(buildBufferChunk({
+                        status: UNPROCESSABLE_ENTITY_HTTP,
+                        message: 'Title and/or description not provided'
+                    }))
+            }
 
             const task = {
                 id: randomUUID(),
@@ -23,7 +40,7 @@ export const routes = [
             database.insert('tasks', task)
 
             return res
-                .writeHead(201)
+                .writeHead(CREATED_HTTP)
                 .end()
         }
     },
@@ -46,11 +63,38 @@ export const routes = [
             const { id } = req.params
             const { body } = req
 
-            database.update('tasks', id, body)
+            if (!body || !body.title || !body.description) {
+                return res
+                    .writeHead(UNPROCESSABLE_ENTITY_HTTP)
+                    .end(buildBufferChunk({
+                        status: UNPROCESSABLE_ENTITY_HTTP,
+                        message: 'Title and/or description not provided'
+                    }))
+            }
 
-            return res
-                .writeHead(201)
-                .end()
+            try {
+                database.update('tasks', id, body)
+
+                return res
+                    .writeHead(CREATED_HTTP)
+                    .end()
+            } catch (e) {
+                if (e instanceof Error) {
+                    return res
+                        .writeHead(NOT_FOUND_HTTP)
+                        .end(buildBufferChunk({
+                            status: NOT_FOUND_HTTP,
+                            message: e.message
+                        }))
+                }
+
+                return res
+                    .writeHead(INTERNAL_SERVER_ERROR_HTTP)
+                    .end(buildBufferChunk({
+                        status: INTERNAL_SERVER_ERROR_HTTP,
+                        message: 'An unknown error has happened'
+                    }))
+            }
 
 
         },
@@ -62,9 +106,27 @@ export const routes = [
         handler: (req, res) => {
             const { id } = req.params
 
-            database.delete('tasks', id)
+            try {
+                database.delete('tasks', id)
 
-            return res.writeHead(204).end()
+                return res.writeHead(NO_CONTENT_HTTP).end()
+            } catch (e) {
+                if (e instanceof Error) {
+                    return res
+                        .writeHead(NOT_FOUND_HTTP)
+                        .end(buildBufferChunk({
+                            status: NOT_FOUND_HTTP,
+                            message: e.message
+                        }))
+                }
+
+                return res
+                    .writeHead(INTERNAL_SERVER_ERROR_HTTP)
+                    .end(buildBufferChunk({
+                        status: INTERNAL_SERVER_ERROR_HTTP,
+                        message: 'An unknown error has happened'
+                    }))
+            }
         },
     },
     {
@@ -77,7 +139,7 @@ export const routes = [
             database.update('tasks', id, null)
 
             return res
-                .writeHead(201)
+                .writeHead(CREATED_HTTP)
                 .end()
 
 
